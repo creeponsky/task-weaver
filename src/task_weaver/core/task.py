@@ -27,7 +27,7 @@ class TaskManager:
     ) -> str:
         """Create a new task with enhanced tracking"""
         try:
-            task_definition = task_catalog.get_task_info(task_type)
+            task_definition = task_catalog.get_task_definition(task_type)
             if not task_definition:
                 raise ProcessingError(f"Task type {task_type} not found in catalog")
 
@@ -80,7 +80,7 @@ class TaskManager:
                 server = None
                 try:
                     task: TaskInfo = await self._queues[task_type].get()
-                    task_definition = task_catalog.get_task_info(task.type)
+                    task_definition = task_catalog.get_task_definition(task.type)
                     
                     # Server allocation logic
                     if task_definition.required_resources != TaskResourceType.API:
@@ -120,7 +120,7 @@ class TaskManager:
     async def _execute_task(self, task: TaskInfo, server: Optional[Any]) -> None:
         """Execute task with enhanced monitoring"""
         try:
-            task_definition = task_catalog.get_task_info(task.type)
+            task_definition = task_catalog.get_task_definition(task.type)
             if not task_definition or not task_definition.executor:
                 raise ProcessingError(f"No executor found for task type: {task.type}")
             

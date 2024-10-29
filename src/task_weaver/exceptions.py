@@ -1,5 +1,5 @@
 class LibraryError(Exception):
-    """Base exception for workflow_manager"""
+    """Base exception for task_weaver"""
     pass
 
 class ConfigurationError(LibraryError):

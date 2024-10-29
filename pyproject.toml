@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "workflow-manager"
+name = "task-weaver"
 version = "0.1.0"
-description = "Your library description"
+description = "A flexible task scheduling and server management library"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "creeponsky", email = "wenhaozuo1@gmail.com" }
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -25,6 +25,6 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/creeponsky/workflow-manager"
-Documentation = "https://workflow-manager.readthedocs.io/"
-Repository = "https://github.com/creeponsky/workflow-manager.git"
+Homepage = "https://github.com/creeponsky/task-weaver"
+Documentation = "https://task-weaver.readthedocs.io/"
+Repository = "https://github.com/creeponsky/task-weaver.git"

@@ -3,15 +3,12 @@ Workflow Manager - A flexible task scheduling and server management library
 """
 
 from .core.task import (
-    TaskManager,
     task_manager,
 )
 from .core.server import (
-    ServerManager,
     server_manager,
 )
-from .core.registry import (
-    TaskCatalog,
+from .core.task_catalog import (
     task_catalog,
 )
 from .core.program_info import program_manager
@@ -20,7 +17,6 @@ from .models.task_models import (
     TaskInfo,
     TaskStatus,
     TaskPriority,
-    TaskType,
     TaskResourceType,
 )
 from .models.server_models import (
@@ -28,58 +24,38 @@ from .models.server_models import (
     ServerStatus,
     ProgramInfo,
 )
-from .models.custom_exception import (
-    WorkflowError,
-    TaskExecutionError,
-    ServerError,
-    ConfigurationError,
-)
-from .utils.cache import CacheManager
+
 
 __version__ = "0.1.0"
 
 # Core functionality
 __all__ = [
     # Task Management
-    'TaskManager',
     'task_manager',
     'TaskInfo',
     'TaskStatus',
     'TaskPriority',
-    'TaskType',
     'TaskResourceType',
     
     # Server Management
-    'ServerManager',
     'server_manager',
     'Server',
     'ServerStatus',
     
     # Task Registry
-    'TaskCatalog',
     'task_catalog',
     
     # Program Management
     'program_manager',
     'ProgramInfo',
-    
-    # Cache Management
-    'CacheManager',
-    
-    # Exceptions
-    'WorkflowError',
-    'TaskExecutionError',
-    'ServerError',
-    'ConfigurationError',
 ]
 
 # Usage example:
 """
-from workflow_manager import (
+from task_weaver import (
     task_manager,
     server_manager,
     task_catalog,
-    TaskType,
     TaskPriority,
     ServerStatus
 )

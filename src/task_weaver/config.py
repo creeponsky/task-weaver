@@ -3,7 +3,7 @@ from typing import Optional
 
 @dataclass
 class LibraryConfig:
-    """Configuration class for workflow_manager"""
+    """Configuration class for task_weaver"""
     
     debug: bool = False
     api_base_url: str = "https://api.example.com"

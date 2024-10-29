@@ -1,5 +1,5 @@
 """
-Utility functions and helpers for workflow_manager
+Utility functions and helpers for task_weaver
 """
 
 from .version import get_version

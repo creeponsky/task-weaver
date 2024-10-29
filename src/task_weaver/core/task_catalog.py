@@ -8,7 +8,7 @@ class TaskCatalog:
     def __init__(self):
         self._task_catalog: Dict[str, TaskDefinition] = {}
     
-    def add_task(
+    def add_task_definition(
         self,
         task_name: str,
         task_type: str,
@@ -32,13 +32,13 @@ class TaskCatalog:
         
         self._task_catalog[task_type] = task_def
     
-    def remove_task(self, task_type: str) -> None:
+    def remove_task_definition(self, task_type: str) -> None:
         """Remove a task definition from catalog"""
         if task_type not in self._task_catalog:
             raise ConfigurationError(f"Task {task_type} not found in catalog")
         del self._task_catalog[task_type]
     
-    def get_task_info(self, task_type: str) -> Optional[TaskDefinition]:
+    def get_task_definition(self, task_type: str) -> Optional[TaskDefinition]:
         """Get task definition by task type"""
         return self._task_catalog.get(task_type)
 
