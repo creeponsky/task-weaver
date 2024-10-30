@@ -2,19 +2,18 @@ from typing import List, Dict, Optional, Any
 import asyncio
 import httpx
 from ..exceptions import ProcessingError, ConfigurationError
-from ..utils.cache import CacheManager
+from ..utils.cache import CacheManager, CacheType
 from typing import Union, List, Optional
 from ..models.server_models import *
 from ..core.program_info import program_manager
 import asyncio
 from typing import List, Dict, Union, Any
-import httpx
 
 # TODO 这里还需要每个插件当添加server的时候因为server是由可运行的任务类型的，对应的任务类型的插件就执行runningserver的连接测试，来确保服务可用
 
 class ServerManager:
     def __init__(self):
-        self.cache_manager = CacheManager("Cache/server_cache.db")
+        self.cache_manager = CacheManager("server_cache", CacheType.SERVER)
         self.all_servers = self._load_servers()
         self.server_idle_event: Dict[str, asyncio.Event] = {}
         self.running_servers: List[Server] = []
@@ -86,7 +85,7 @@ class ServerManager:
         return server in self.running_servers
 
     #注册服务器，让其处于运行状态
-    def register_server(self, ip: str, server_name: str, description, weight, server_types: List[str] = None):
+    def register_server(self, ip: str, server_name: str, description, weight, available_task_types: List[str] = None, server_type: ResourceType = ResourceType.GPU):
         old_server = self.get_server_by_identifier(ip, server_name)
         if old_server:
             print(f"已经存在服务器：{old_server}")
@@ -95,11 +94,12 @@ class ServerManager:
             old_server.server_name = server_name
             old_server.description = description
             old_server.weight = weight
-            old_server.available_task_types = server_types if server_types else []
+            old_server.available_task_types = available_task_types if available_task_types else []
+            old_server.server_type = server_type if server_type else old_server.server_type
             message = f"存在服务器：{old_server}， 已经覆盖配置"
             print(message)
         else:
-            server = Server(ip=ip, server_name=server_name, description=description, weight=weight, available_task_types=server_types if server_types else [])
+            server = Server(ip=ip, server_name=server_name, description=description, weight=weight, available_task_types=available_task_types if available_task_types else [], server_type=server_type)
             self.all_servers.append(server)
             message = f"添加新服务器：{server}"
             print(message)
@@ -137,7 +137,7 @@ class ServerManager:
         program_manager.set_running_gpu_num(len(self.running_servers))
         return True, f"删除服务器{server} 成功"
 
-    async def get_idle_server(self, available_task_type: str = None, task_resource_type: TaskResourceType = None) -> Optional[Server]:
+    async def get_idle_server(self, available_task_type: str = None, task_resource_type: ResourceType = None) -> Optional[Server]:
         best_server = None
         while best_server is None:
             for server in self.running_servers:
@@ -170,7 +170,7 @@ class ServerManager:
         for i in range(3):
             try:
                 async with httpx.AsyncClient() as client:
-                    response = await client.get(f"{server.ip}", timeout=20)
+                    response = await client.get(f"{server.ip}", timeout=2)  # 修改超时时间为2秒
                     if response.status_code == 200:
                         return True
                     else:

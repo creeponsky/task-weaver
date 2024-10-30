@@ -1,5 +1,5 @@
 from ..models.server_models import ProgramInfo, TaskTypeStats
-from ..utils.cache import CacheManager
+from ..utils.cache import CacheManager, CacheType
 from typing import Dict
 import time
 
@@ -7,7 +7,7 @@ class ProgramManager:
     def __init__(self):
         print("Initializing ProgramManager...")
         self.start_time = int(time.time())
-        self.cache_manager = CacheManager("Cache/program_cache.db")
+        self.cache_manager = CacheManager("program_cache", CacheType.PROGRAM)
         self.info = self._load_info()
         
         # Initialize task type statistics if not present

@@ -1,7 +1,13 @@
 from pydantic import BaseModel
 from enum import Enum
 from typing import List, Dict, Union, Any
-from .task_models import TaskResourceType
+
+# 任务需要的资源类型 | 也是服务器类型 但不严格对等
+class ResourceType(str, Enum):
+    CPU = "cpu"
+    GPU = "gpu"
+    API = "api"
+
 class ServerStatus(str, Enum):
     stop = "stop"
     error = "error"
@@ -32,7 +38,7 @@ class Server(BaseModel):
     server_name: str
     description: str
     available_task_types: List[str] #服务器可以跑的任务类型
-    server_type: TaskResourceType #服务器资源类型
+    server_type: ResourceType #服务器资源类型
     status: ServerStatus = ServerStatus.stop
     weight: int = 1
 

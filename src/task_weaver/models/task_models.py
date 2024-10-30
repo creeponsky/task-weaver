@@ -1,8 +1,11 @@
 from pydantic import BaseModel
 from enum import Enum
-from typing import List, Dict, Union, Any, Optional, Callable
+from typing import Any, Optional, TypeVar, Protocol
 from datetime import datetime
 from typing import Dict
+from .server_models import Server, ResourceType
+
+T = TypeVar('T')  # Return type for executor
 
 class TaskStatus(str, Enum):
     INIT = "INIT"
@@ -46,62 +49,85 @@ class TaskPriority(str, Enum):
             return NotImplemented
         return self.priority >= other.priority
 
-class TaskResourceType(str, Enum):
-    CPU = "cpu"
-    GPU = "gpu"
-    API = "api"
+
+class TaskInfo(BaseModel):
+    """Information about a specific task instance"""
+    task_id: str
+    task_type: str  # References TaskDefinition.task_type
+    status: TaskStatus
+    priority: TaskPriority = TaskPriority.MEDIUM
+    args: Any = None
+    kwargs: Any = None
+    create_time: datetime = datetime.now()
+    start_time: Optional[datetime] = None
+    finish_time: Optional[datetime] = None
+    progress: float = 0 # 0-100的百分比
+    remaining_duration: Optional[float] = None # 剩余时间
+    wait_duration: Optional[float] = None # 等待时间
+    execution_duration: Optional[float] = None # 执行时间
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    message: str = "Task is queued."
+    
+    def model_dump(self) -> Dict[str, Any]:
+        """Serialize the model with datetime handling"""
+        return {
+            "task_id": self.task_id,
+            "task_type": self.task_type,
+            "status": self.status,
+            "priority": self.priority,
+            "progress": self.progress,
+            "params": self.params,
+            "create_time": self.create_time.isoformat() if self.create_time else None,
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "finish_time": self.finish_time.isoformat() if self.finish_time else None,
+            "message": self.message,
+            "remaining_duration": self.remaining_duration,
+            "wait_duration": self.wait_duration,
+            "execution_duration": self.execution_duration,
+            "result": self.result,
+            "error": self.error
+        }
+    
+    @classmethod
+    def from_json(cls, data: Dict[str, Any]) -> "TaskInfo":
+        """Create TaskInfo instance from JSON data with datetime handling"""
+        # Convert ISO format strings to datetime objects
+        if isinstance(data.get('create_time'), str):
+            data['create_time'] = datetime.fromisoformat(data['create_time'])
+        if isinstance(data.get('start_time'), str):
+            data['start_time'] = datetime.fromisoformat(data['start_time'])
+        if isinstance(data.get('finish_time'), str):
+            data['finish_time'] = datetime.fromisoformat(data['finish_time'])
+        return cls(**data)
+
+
+class TaskExecutor(Protocol[T]):
+    """Type protocol for task executors"""
+    async def __call__(
+        self,
+        server: Server | None,
+        task_info: TaskInfo,
+        **kwargs: Any
+    ) -> T: ...
 
 class TaskDefinition:
     """Definition of a task type that plugins can register"""
     def __init__(
         self,
-        name: str,
+        showname: str,
         task_type: str,
-        executor: Callable,
-        required_resources: List[TaskResourceType],
+        executor: TaskExecutor[Any],
+        required_resource: ResourceType,
         description: str = "",
         version: str = "1.0.0"
     ):
-        self.name = name
+        self.name = showname
         self.task_type = task_type
         self.executor = executor
-        self.required_resources = required_resources
+        self.required_resources = required_resource
         self.description = description
         self.version = version
-
-class TaskInfo(BaseModel):
-    """Information about a specific task instance"""
-    task_id: str
-    type: str  # References TaskDefinition.task_type
-    status: TaskStatus
-    priority: TaskPriority = TaskPriority.MEDIUM
-    params: Dict[str, Any]
-    created_at: datetime = datetime.now()
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
-    progress: float = 0
-    remaining_time: Optional[float] = None
-    wait_time: Optional[float] = None
-    execute_time: Optional[float] = None
-    result: Optional[Any] = None
-    error: Optional[str] = None
-    msg: str = "Task is queued."
-    
-    def model_dump(self):
-        return {
-            "task_id": self.task_id,
-            "type": self.type,
-            "status": self.status,
-            "priority": self.priority,
-            "progress": self.progress,
-            "created_at": self.created_at.isoformat(),
-            "started_at": self.started_at.isoformat() if self.started_at else None,
-            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
-            "message": self.msg,
-            "result": self.result,
-            "error": self.error
-        }
-
 
 class TaskQueueItem:
     """Class representing an item in the task queue"""

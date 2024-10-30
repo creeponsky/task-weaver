@@ -17,14 +17,18 @@ from .models.task_models import (
     TaskInfo,
     TaskStatus,
     TaskPriority,
-    TaskResourceType,
 )
 from .models.server_models import (
     Server,
     ServerStatus,
     ProgramInfo,
+    ResourceType,
 )
 
+from .exceptions import (
+    ConfigurationError,
+    ProcessingError,
+)
 
 __version__ = "0.1.0"
 
@@ -35,7 +39,7 @@ __all__ = [
     'TaskInfo',
     'TaskStatus',
     'TaskPriority',
-    'TaskResourceType',
+    'ResourceType',
     
     # Server Management
     'server_manager',
@@ -48,6 +52,10 @@ __all__ = [
     # Program Management
     'program_manager',
     'ProgramInfo',
+    
+    # Exceptions
+    'ConfigurationError',
+    'ProcessingError',
 ]
 
 # Usage example:
