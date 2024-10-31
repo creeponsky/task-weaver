@@ -1,9 +1,10 @@
-from pydantic import BaseModel
-from enum import Enum
-from typing import Any, Optional, TypeVar, Protocol
 from datetime import datetime
-from typing import Dict
-from .server_models import Server, ResourceType
+from enum import Enum
+from typing import Any, Dict, Optional, Protocol, TypeVar
+
+from pydantic import BaseModel
+
+from .server_models import ResourceType, Server
 
 T = TypeVar('T')  # Return type for executor
 

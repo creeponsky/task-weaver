@@ -1,16 +1,19 @@
-import pytest
 import asyncio
-import logging
-import random
-from datetime import datetime
+
+import httpx
+import pytest
+from test_utils import logger
+
 from task_weaver.core.task import task_manager
 from task_weaver.core.task_catalog import task_catalog
-from task_weaver.models.task_models import ResourceType, TaskPriority, TaskInfo, TaskStatus
 from task_weaver.exceptions import ConfigurationError
-import httpx
-from typing import List
-from pathlib import Path
-from test_utils import logger
+from task_weaver.models.task_models import (
+    ResourceType,
+    TaskInfo,
+    TaskPriority,
+    TaskStatus,
+)
+
 
 # Task executors
 async def gpu_task_1_executor(server, task_info: TaskInfo, **kwargs):

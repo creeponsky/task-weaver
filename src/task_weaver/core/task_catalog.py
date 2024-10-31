@@ -1,7 +1,10 @@
-from typing import Any, Callable, Dict, Optional, List
+from typing import Any, Dict, Optional
+
 from ..exceptions import ConfigurationError
-from ..models.task_models import TaskDefinition, TaskExecutor
 from ..models.server_models import ResourceType
+from ..models.task_models import TaskDefinition, TaskExecutor
+
+
 class TaskCatalog:
     """Catalog for managing task definitions and information"""
     

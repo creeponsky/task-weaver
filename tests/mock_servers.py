@@ -1,12 +1,13 @@
-from pathlib import Path
-from fastapi import FastAPI
-import uvicorn
 import asyncio
 import random
-from typing import Dict, Any
 import threading
 import time
+from typing import Any, Dict
+
+import uvicorn
+from fastapi import FastAPI
 from test_utils import logger
+
 
 class MockServer:
     def __init__(self, port: int, server_type: str):

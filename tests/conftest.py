@@ -1,16 +1,17 @@
-import pytest
 import asyncio
 from pathlib import Path
-from task_weaver.core.server import server_manager
-from task_weaver.core.task_catalog import task_catalog
-from task_weaver.models.server_models import ResourceType
+
+import pytest
 from test_utils import logger
-import logging
+
+from task_weaver.core.server import server_manager
+from task_weaver.models.server_models import ResourceType
 
 # 获取当前文件所在目录的路径
 current_dir = Path(__file__).parent
 # 导入同目录下的 mock_servers.py
 from mock_servers import start_mock_servers
+
 
 @pytest.fixture(scope="session")
 def event_loop():

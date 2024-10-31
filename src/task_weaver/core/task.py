@@ -1,15 +1,17 @@
-from datetime import datetime, timedelta
-from typing import Optional, Any, Dict, Tuple, Callable
 import asyncio
-import uuid
-from .server import server_manager
-from ..models.task_models import *
-from ..models.server_models import ResourceType
-from .task_catalog import task_catalog
-from ..exceptions import ProcessingError
-from ..utils.cache import CacheManager, CacheType
-import traceback
 import json
+import traceback
+import uuid
+from datetime import datetime
+from typing import Dict, Optional
+
+from ..exceptions import ProcessingError
+from ..models.server_models import ResourceType, Server
+from ..models.task_models import TaskInfo, TaskPriority, TaskStatus
+from ..utils.cache import CacheManager, CacheType
+from .server import server_manager
+from .task_catalog import task_catalog
+
 
 class TaskManager:
     """Core task management functionality for distributed task processing.

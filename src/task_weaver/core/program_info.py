@@ -1,6 +1,5 @@
 from ..models.server_models import ProgramInfo, TaskTypeStats
 from ..utils.cache import CacheManager, CacheType
-from typing import Dict
 import time
 
 class ProgramManager:

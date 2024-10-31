@@ -1,8 +1,9 @@
 import logging
-import sys
-from logging.handlers import TimedRotatingFileHandler
 import os
+import sys
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
+
 
 def setup_logger(name, log_dir, level=logging.INFO):
     if not os.path.exists(log_dir):

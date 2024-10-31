@@ -1,6 +1,8 @@
-from pydantic import BaseModel
 from enum import Enum
-from typing import List, Dict, Union, Any
+from typing import Dict, List
+
+from pydantic import BaseModel
+
 
 # 任务需要的资源类型 | 也是服务器类型 但不严格对等
 class ResourceType(str, Enum):
