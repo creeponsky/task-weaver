@@ -12,27 +12,49 @@ from task_weaver.models.task_models import (
     TaskInfo,
     TaskPriority,
     TaskStatus,
+    Server,
+    BaseTaskExecutor,
+    Dict,
+    Any,
 )
 
 
 # Task executors
-async def gpu_task_1_executor(server, task_info: TaskInfo, **kwargs):
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(f"{server.ip}/execute", json=kwargs)
-        return response.json()
-    logger.info(f"GPU Task {task_info.task_id} completed")
+class GPUTask1Executor(BaseTaskExecutor[Dict[str, Any]]):
+    async def __call__(
+        self,
+        server: Server | None,
+        task_info: TaskInfo,
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(f"{server.ip}/execute", json=kwargs)
+            logger.info(f"GPU Task {task_info.task_id} completed")
+            return response.json()
 
-async def gpu_task_2_executor(server, task_info: TaskInfo, **kwargs):
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(f"{server.ip}/execute", json=kwargs)
-        return response.json()
-    logger.info(f"GPU Task {task_info.task_id} completed")
+class GPUTask2Executor(BaseTaskExecutor[Dict[str, Any]]):
+    async def __call__(
+        self,
+        server: Server | None,
+        task_info: TaskInfo,
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(f"{server.ip}/execute", json=kwargs)
+            logger.info(f"GPU Task {task_info.task_id} completed")
+            return response.json()
 
-async def api_task_executor(server, task_info: TaskInfo, **kwargs):
-    # API server is none, just sleep
-    await asyncio.sleep(1)
-    logger.info(f"API Task {task_info.task_id} completed")
-
+class APITaskExecutor(BaseTaskExecutor[Dict[str, Any]]):
+    async def __call__(
+        self,
+        server: Server | None,
+        task_info: TaskInfo,
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        # API server is none, just sleep
+        await asyncio.sleep(1)
+        logger.info(f"API Task {task_info.task_id} completed")
+        return {"status": "success"}
 @pytest.fixture(autouse=True)
 def register_task_types():
     try:
@@ -40,7 +62,7 @@ def register_task_types():
         task_catalog.add_task_definition(
             "GPU Task 1",
             "gpu_task_1",
-            gpu_task_1_executor,
+            GPUTask1Executor(),
             ResourceType.GPU,
             "Test GPU Task 1"
         )
@@ -48,7 +70,7 @@ def register_task_types():
         task_catalog.add_task_definition(
             "GPU Task 2",
             "gpu_task_2",
-            gpu_task_2_executor,
+            GPUTask2Executor(),
             ResourceType.GPU,
             "Test GPU Task 2"
         )
@@ -56,7 +78,7 @@ def register_task_types():
         task_catalog.add_task_definition(
             "API Task",
             "api_task",
-            api_task_executor,
+            APITaskExecutor(),
             ResourceType.API,
             "Test API Task"
         )

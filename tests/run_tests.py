@@ -1,11 +1,12 @@
 import asyncio
 
 import pytest
-from test_utils import logger
+from task_weaver.log.logger import configure_logging
+import logging
+configure_logging(enabled=True, log_dir="./logs/test/", level=logging.DEBUG)
 
 
 async def main():
-    logger.info("Starting tests...")
     # 这里可以添加断点进行调试
     pytest.main(["-v", "-s", "tests/"])
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Protocol, TypeVar
+from typing import Any, Dict, Optional, Protocol, TypeVar, Generic
 
 from pydantic import BaseModel
 
@@ -78,7 +78,6 @@ class TaskInfo(BaseModel):
             "status": self.status,
             "priority": self.priority,
             "progress": self.progress,
-            "params": self.params,
             "create_time": self.create_time.isoformat() if self.create_time else None,
             "start_time": self.start_time.isoformat() if self.start_time else None,
             "finish_time": self.finish_time.isoformat() if self.finish_time else None,
@@ -102,15 +101,26 @@ class TaskInfo(BaseModel):
             data['finish_time'] = datetime.fromisoformat(data['finish_time'])
         return cls(**data)
 
-
 class TaskExecutor(Protocol[T]):
     """Type protocol for task executors"""
     async def __call__(
         self,
         server: Server | None,
         task_info: TaskInfo,
+        *args: Any,    # 添加位置参数
         **kwargs: Any
     ) -> T: ...
+
+class BaseTaskExecutor(Generic[T]):
+    """Base class for task executors that implements TaskExecutor protocol"""
+    async def __call__(
+        self,
+        server: Server | None,
+        task_info: TaskInfo,
+        *args: Any,    # 添加位置参数
+        **kwargs: Any
+    ) -> T:
+        raise NotImplementedError
 
 class TaskDefinition:
     """Definition of a task type that plugins can register"""

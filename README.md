@@ -38,7 +38,7 @@ server_manager.register_server(
     ip="http://192.168.1.100:8000",
     server_name="gpu-1",
     description="GPU Server 1",
-    weight=1,
+    tier=1,
     available_task_types=["image_generation"],
     server_type=ResourceType.GPU
 )
