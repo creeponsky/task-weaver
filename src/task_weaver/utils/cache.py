@@ -7,7 +7,6 @@ from ..log.logger import logger
 
 class CacheType(Enum):
     SERVER = auto()
-    TASK = auto()
     PROGRAM = auto()
 
 class CacheManager:
@@ -35,8 +34,6 @@ class CacheManager:
             # Determine table schema based on cache type
             if self.cache_type == CacheType.SERVER:
                 self._create_server_table()
-            elif self.cache_type == CacheType.TASK:
-                self._create_task_table()
             elif self.cache_type == CacheType.PROGRAM:
                 self._create_program_table()
         except PermissionError as e:
@@ -58,20 +55,6 @@ class CacheManager:
                 """)
         except sqlite3.Error as e:
             logger.error(f"Error creating server table: {e}")
-            raise
-
-    def _create_task_table(self):
-        try:
-            with sqlite3.connect(self.file_path) as conn:
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS tasks (
-                        task_id TEXT PRIMARY KEY,
-                        data JSON,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-        except sqlite3.Error as e:
-            logger.error(f"Error creating task table: {e}")
             raise
 
     def _create_program_table(self):
@@ -96,11 +79,6 @@ class CacheManager:
                     cursor = conn.execute("SELECT data FROM servers")
                     rows = cursor.fetchall()
                     return [json.loads(row[0]) for row in rows] if rows else []
-                
-                elif self.cache_type == CacheType.TASK:
-                    cursor = conn.execute("SELECT data FROM tasks")
-                    rows = cursor.fetchall()
-                    return [{'task_id': json.loads(row[0])['task_id'], 'data': row[0]} for row in rows]
                 
                 elif self.cache_type == CacheType.PROGRAM:
                     cursor = conn.execute("SELECT data FROM program_info ORDER BY timestamp DESC LIMIT 1")
@@ -137,20 +115,6 @@ class CacheManager:
                         conn.execute(
                             "INSERT INTO servers (server_name, data) VALUES (?, ?)",
                             (server.get('server_name', ''), json.dumps(server))
-                        )
-                
-                elif self.cache_type == CacheType.TASK:
-                    if not isinstance(data, list):
-                        raise ValueError("Task cache data must be a list")
-                    for task in data:
-                        if not isinstance(task, dict) or 'task_id' not in task or 'data' not in task:
-                            raise ValueError("Invalid task data format")
-                        conn.execute(
-                            """
-                            INSERT OR REPLACE INTO tasks (task_id, data) 
-                            VALUES (?, ?)
-                            """,
-                            (task['task_id'], task['data'])
                         )
                 
                 elif self.cache_type == CacheType.PROGRAM:

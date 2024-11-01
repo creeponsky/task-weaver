@@ -129,7 +129,7 @@ elif task_info.status == TaskStatus.FAIL:
 
 ## 配置要求
 
-- Python 3.10 或更高版本
+- Python 3.9 或更高版本
 - 异步支持 (asyncio)
 - 网络连接（用于服务器通信）
 

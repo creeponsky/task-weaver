@@ -1,17 +1,16 @@
 import asyncio
-import json
 import traceback
 import uuid
 from datetime import datetime
 from typing import Dict, Optional
 
 from ..exceptions import ProcessingError
+from ..log.logger import logger
 from ..models.server_models import ResourceType, Server
 from ..models.task_models import TaskInfo, TaskPriority, TaskStatus
-from ..utils.cache import CacheManager, CacheType
+from .program_info import program_manager
 from .server import server_manager
 from .task_catalog import task_catalog
-from ..log.logger import logger
 
 
 class TaskManager:
@@ -32,9 +31,6 @@ class TaskManager:
         logger.info("Initializing TaskManager...")
         # Queue for each task type to enable parallel processing
         self._queues: Dict[str, asyncio.Queue] = {}
-        
-        # Cache manager for task persistence
-        self._cache_manager = CacheManager("task_cache", CacheType.TASK)
         
         # In-memory storage of active tasks
         self._tasks: Dict[str, TaskInfo] = {}
@@ -96,20 +92,7 @@ class TaskManager:
         self._tasks[task.task_id] = task
         await self._ensure_task_processor(task.task_type)
         await self._queues[task.task_type].put(task)
-        self._save_task_to_cache(task)
         return task
-
-    def _save_task_to_cache(self, task: TaskInfo) -> None:
-        """Persist task information to cache storage."""
-        logger.debug(f"Saving task {task.task_id} to cache")
-        try:
-            self._cache_manager.write_cache([{
-                'task_id': task.task_id,
-                'data': json.dumps(task.model_dump())
-            }])
-            logger.debug(f"Task {task.task_id} saved to cache successfully")
-        except Exception as e:
-            logger.error(f"Failed to save task {task.task_id} to cache: {str(e)}")
 
     async def _ensure_task_processor(self, task_type: str) -> None:
         """Ensure a processor coroutine is running for the given task type."""
@@ -169,7 +152,6 @@ class TaskManager:
                     if task:
                         task.status = TaskStatus.FAIL
                         task.error = error_msg
-                        self._save_task_to_cache(task)
                 finally:
                     if server:
                         logger.debug(f"Releasing server {server.server_name}")
@@ -197,7 +179,6 @@ class TaskManager:
             task.start_time = datetime.now()
             task.wait_duration = (task.start_time - task.create_time).total_seconds()
             logger.info(f"Task {task.task_id} waited {task.wait_duration:.2f} seconds in queue")
-            self._save_task_to_cache(task)
             
             logger.debug(f"Executing task {task.task_id} with executor")
             await task_definition.executor(
@@ -208,6 +189,7 @@ class TaskManager:
             )
             
             task.status = TaskStatus.FINISH
+            program_manager.update_finished_task_num(task.task_type)
             task.message = "Task completed successfully"
             logger.info(f"Task {task.task_id} completed successfully")
             
@@ -215,6 +197,7 @@ class TaskManager:
             error_msg = f"Task execution failed: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_msg)
             task.status = TaskStatus.FAIL
+            program_manager.update_failed_task_num(task.task_type)
             task.error = error_msg
             task.message = "Task failed"
             raise
@@ -222,25 +205,11 @@ class TaskManager:
             task.finish_time = datetime.now()
             task.execution_duration = (task.finish_time - task.start_time).total_seconds()
             logger.info(f"Task {task.task_id} execution took {task.execution_duration:.2f} seconds")
-            self._save_task_to_cache(task)
 
     def get_task_info(self, task_id: str) -> Optional[TaskInfo]:
-        """Retrieve task information from memory or cache."""
+        """Retrieve task information from memory."""
         logger.debug(f"Retrieving info for task {task_id}")
-        task = self._tasks.get(task_id)
-        if not task:
-            logger.debug(f"Task {task_id} not found in memory, checking cache")
-            try:
-                cached_tasks = self._cache_manager.read_cache()
-                for cached_task in cached_tasks:
-                    if cached_task.get('task_id') == task_id:
-                        task_data = json.loads(cached_task['data'])
-                        logger.debug(f"Task {task_id} found in cache")
-                        return TaskInfo.from_json(task_data)
-            except Exception as e:
-                logger.error(f"Failed to get task {task_id} from cache: {str(e)}")
-                logger.error(f"Task {task_id} not found in memory or cache")
-        return task
+        return self._tasks.get(task_id)
 
 # Global task manager instance for application-wide task management
 logger.info("Creating global TaskManager instance")

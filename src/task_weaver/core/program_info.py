@@ -10,7 +10,7 @@ class ProgramManager:
         self.cache_manager = CacheManager("program_cache", CacheType.PROGRAM)
         self.info = self._load_info()
         # Initialize task type statistics if not present
-        if not hasattr(self.info, 'first_start_time'):
+        if not hasattr(self.info, 'first_start_time') or self.info.first_start_time == 0:
             logger.info("First time running - initializing first_start_time")
             self.info.first_start_time = self.start_time
             
@@ -52,6 +52,20 @@ class ProgramManager:
         running_time = int(time.time()) - self.start_time
         self.info.running_time = int(running_time)
         return self.info
+    
+    async def record_task_time(self, task_type: str, start_time: float):
+        duration_ms = (time.time() - start_time) * 1000
+        if task_type not in self.info.server_task_stats:
+            self.info.server_task_stats[task_type] = ServerOperationStats()
+        self.info.server_task_stats[task_type].update_stats(duration_ms)
+        self._save_info()
+
+    async def record_operation_time(self, operation_name: str, start_time: float):
+        duration_ms = (time.time() - start_time) * 1000
+        if operation_name not in self.info.server_operation_stats:
+            self.info.server_operation_stats[operation_name] = ServerOperationStats()
+        self.info.server_operation_stats[operation_name].update_stats(duration_ms)
+        self._save_info()
     
     def set_running_gpu_num(self, num):
         if not isinstance(num, int) or num < 0:

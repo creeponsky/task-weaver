@@ -63,7 +63,7 @@ class ServerManager:
         
         # Initialize optimized data structures
         self._update_server_indices()
-        await self._record_operation_time('init_running_server', start_time)
+        await program_manager.record_operation_time('init_running_server', start_time)
 
     def _update_server_indices(self):
         """Update the optimized server indices"""
@@ -135,7 +135,7 @@ class ServerManager:
 
             self._save_servers()
             program_manager.set_gpu_num(len(self.all_servers))
-            await self._record_operation_time('register_server', start_time)
+            await program_manager.record_operation_time('register_server', start_time)
             return True, message
 
     async def get_idle_server(self, available_task_type: str = None, 
@@ -158,7 +158,7 @@ class ServerManager:
                 if await self.check_server(server):
                     self.set_server_status(server, ServerStatus.occupy)
                     if available_task_type:
-                        await self._record_task_time(available_task_type, start_time)
+                        await program_manager.record_task_time(available_task_type, start_time)
                     return server
                 self.set_server_status(server, ServerStatus.error)
                 logger.error(f"运行服务器({server})异常，无法连接")
@@ -188,7 +188,7 @@ class ServerManager:
             except Exception as e:
                 logger.error(f"check_server: 服务器({server})异常：{e}")
                 return False
-        await self._record_operation_time('check_server', start_time)
+        await program_manager.record_operation_time('check_server', start_time)
         return True
     
     async def release_server(self, server: Server):
@@ -232,7 +232,7 @@ class ServerManager:
             self.set_server_status(server, ServerStatus.idle)
             
             program_manager.set_running_gpu_num(len(self.running_servers))
-            await self._record_operation_time('add_running_server', start_time)
+            await program_manager.record_operation_time('add_running_server', start_time)
             return True, f"添加服务器{server} 成功"
 
     async def remove_running_server(self, ip: Union[str, None] = None, server_name: Union[str, None] = None):
@@ -253,22 +253,10 @@ class ServerManager:
             self.set_server_status(server, ServerStatus.stop)
             
             program_manager.set_running_gpu_num(len(self.running_servers))
-            await self._record_operation_time('remove_running_server', start_time)
+            await program_manager.record_operation_time('remove_running_server', start_time)
             return True, f"删除服务器{server} 成功"
 
-    async def _record_operation_time(self, operation_name: str, start_time: float):
-        duration_ms = (time.time() - start_time) * 1000
-        if operation_name not in program_manager.info.server_operation_stats:
-            program_manager.info.server_operation_stats[operation_name] = ServerOperationStats()
-        program_manager.info.server_operation_stats[operation_name].update_stats(duration_ms)
-        program_manager._save_info()
 
-    async def _record_task_time(self, task_type: str, start_time: float):
-        duration_ms = (time.time() - start_time) * 1000
-        if task_type not in program_manager.info.server_task_stats:
-            program_manager.info.server_task_stats[task_type] = ServerOperationStats()
-        program_manager.info.server_task_stats[task_type].update_stats(duration_ms)
-        program_manager._save_info()
 
 # Create manager instance
 server_manager = ServerManager()
