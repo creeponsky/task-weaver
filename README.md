@@ -67,7 +67,7 @@ async def main():
     )
     
     # 获取任务状态
-    task_info = task_manager.get_task_info(task.task_id)
+    task_info = task_manager.get_task_info(task.task_info.task_id)
 ```
 
 ### 服务器管理

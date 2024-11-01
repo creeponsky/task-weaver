@@ -14,12 +14,12 @@ class MockServer:
         self.app = FastAPI()
         self.port = port
         self.server_type = server_type
-        
+
         @self.app.get("/")
         async def health_check():
             logger.info(f"Port {self.port} received health check")
             return {"status": "ok"}
-            
+
         @self.app.post("/execute")
         async def execute_task(task_data: Dict[str, Any]):
             logger.info(f"Port {self.port} received task: {task_data}")
@@ -31,20 +31,22 @@ class MockServer:
                 "status": "success",
                 "execution_time": delay,
                 "server_type": self.server_type,
-                "task_data": task_data
+                "task_data": task_data,
             }
-    
+
     def start(self):
         def run_server():
             uvicorn.run(self.app, host="127.0.0.1", port=self.port)
-            
+
         self.thread = threading.Thread(target=run_server, daemon=True)
         self.thread.start()
+
 
 # Create server instances
 gpu_server_1 = MockServer(8001, "gpu")
 gpu_server_2 = MockServer(8002, "gpu")
 gpu_server_3 = MockServer(8003, "gpu")
+
 
 def start_mock_servers():
     gpu_server_1.start()
