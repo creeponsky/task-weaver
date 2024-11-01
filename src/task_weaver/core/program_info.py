@@ -2,7 +2,6 @@ from ..models.server_models import ProgramInfo, TaskTypeStats, ServerOperationSt
 from ..utils.cache import CacheManager, CacheType
 from ..log.logger import logger
 import time
-from typing import Dict
 class ProgramManager:
     def __init__(self):
         logger.info("Initializing ProgramManager...")
