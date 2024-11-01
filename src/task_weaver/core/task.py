@@ -61,7 +61,7 @@ class TaskManager:
             logger.debug(f"Generated task ID: {task_id}")
 
             task = Task(
-                task_info=TaskInfo(
+                TaskInfo(
                     task_id=task_id,
                     task_type=task_type,
                     status=TaskStatus.INIT,
@@ -73,8 +73,8 @@ class TaskManager:
                     execution_duration=None,
                     message="Task is queued.",
                 ),
-                args=args,
-                kwargs=kwargs,
+                *args,
+                **kwargs,
             )
             logger.info(f"Successfully created task {task_id} of type {task_type}")
             return task

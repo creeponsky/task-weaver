@@ -105,7 +105,7 @@ class TaskExecutor(Protocol[T]):
         self,
         server: Server | None,
         task_info: TaskInfo,
-        *args: Any,  # 添加位置参数
+        *args: Any,
         **kwargs: Any,
     ) -> T: ...
 
@@ -130,7 +130,7 @@ class BaseTaskExecutor(Generic[T]):
         self,
         server: Server | None,
         task_info: TaskInfo,
-        *args: Any,  # 添加位置参数
+        *args: Any,
         **kwargs: Any,
     ) -> T:
         raise NotImplementedError

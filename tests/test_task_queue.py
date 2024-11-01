@@ -87,8 +87,9 @@ async def test_basic_task_execution():
     tasks = []
 
     # GPU Task 1
+    folder_name, model_data = "test_folder", {"test": "123"}
     task1 = await task_manager.create_task(
-        task_type="gpu_task_1", priority=TaskPriority.MEDIUM, test_param="gpu1_test"
+        "gpu_task_1", TaskPriority.MEDIUM, folder_name, model_data
     )
     await task_manager.add_task(task1)
     tasks.append(task1)
