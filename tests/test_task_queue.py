@@ -23,27 +23,32 @@ from task_weaver.models.task_models import (
 # Task executors
 class GPUTask1Executor(BaseTaskExecutor[Dict[str, Any]]):
     async def __call__(
-        self, server: Server | None, task_info: TaskInfo, **kwargs: Any
+        self, server: Server | None, task_info: TaskInfo, folder_name, model_data
     ) -> Dict[str, Any]:
         async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(f"{server.ip}/execute", json=kwargs)
+            response = await client.post(
+                f"{server.ip}/execute",
+                json={"folder_name": folder_name, "model_data": model_data},
+            )
             logger.info(f"GPU Task {task_info.task_id} completed")
             return response.json()
 
 
 class GPUTask2Executor(BaseTaskExecutor[Dict[str, Any]]):
     async def __call__(
-        self, server: Server | None, task_info: TaskInfo, **kwargs: Any
+        self, server: Server | None, task_info: TaskInfo, test_param
     ) -> Dict[str, Any]:
         async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(f"{server.ip}/execute", json=kwargs)
+            response = await client.post(
+                f"{server.ip}/execute", json={"test_param": test_param}
+            )
             logger.info(f"GPU Task {task_info.task_id} completed")
             return response.json()
 
 
 class APITaskExecutor(BaseTaskExecutor[Dict[str, Any]]):
     async def __call__(
-        self, server: Server | None, task_info: TaskInfo, **kwargs: Any
+        self, server: Server | None, task_info: TaskInfo, test_param
     ) -> Dict[str, Any]:
         # API server is none, just sleep
         await asyncio.sleep(1)
@@ -135,10 +140,12 @@ async def test_task_priorities():
 
     # Create GPU tasks with different priorities
     for priority in priorities:
+        folder_name, model_data = f"test_folder_{priority.value}", {"test": "123"}
         task = await task_manager.create_task(
             task_type="gpu_task_1",
             priority=priority,
-            test_param=f"priority_{priority.value}",
+            folder_name=folder_name,
+            model_data=model_data,
         )
         await task_manager.add_task(task)
         tasks.append(task)
