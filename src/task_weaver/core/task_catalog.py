@@ -1,3 +1,4 @@
+import traceback
 from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from ..exceptions import ConfigurationError
@@ -5,7 +6,6 @@ from ..log.logger import logger
 from ..models.server_models import ResourceType
 from ..models.task_models import TaskDefinition, TaskExecutor, TaskInfo
 
-# Type definition for task completion callback
 TaskCompletionCallback = Callable[[TaskInfo], Coroutine[Any, Any, None]]
 
 
@@ -15,6 +15,9 @@ class TaskCatalog:
     def __init__(self):
         self._task_catalog: Dict[str, TaskDefinition] = {}
         self._completion_listeners: Dict[str, List[TaskCompletionCallback]] = {}
+
+    def get_all_task_definitions(self) -> List[TaskDefinition]:
+        return list(self._task_catalog.values())
 
     def add_task_definition(
         self,
@@ -39,7 +42,7 @@ class TaskCatalog:
 
         try:
             task_def = TaskDefinition(
-                showname=task_name,
+                name=task_name,
                 task_type=task_type,
                 executor=executor,
                 required_resource=required_resource,
@@ -138,6 +141,7 @@ class TaskCatalog:
                     logger.error(
                         f"Error in completion callback for task {task_type}: {str(e)} {traceback.format_exc()}"
                     )
+                    raise e
 
 
 # Global task catalog

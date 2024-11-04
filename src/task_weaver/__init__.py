@@ -24,8 +24,8 @@ from .models.server_models import (
 )
 from .models.task_models import (
     BaseTaskExecutor,
-    ResourceType,
     Task,
+    TaskDefinition,
     TaskInfo,
     TaskPriority,
     TaskStatus,
@@ -50,6 +50,7 @@ __all__ = [
     "ServerTier",
     # Task Registry
     "task_catalog",
+    "TaskDefinition",
     "TaskCompletionCallback",
     # Program Management
     "program_manager",

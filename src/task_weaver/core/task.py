@@ -2,7 +2,7 @@ import asyncio
 import traceback
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Callable, Coroutine, Dict, Optional
 
 from ..exceptions import ProcessingError
 from ..log.logger import logger
@@ -11,6 +11,9 @@ from ..models.task_models import Task, TaskInfo, TaskPriority, TaskStatus
 from .program_info import program_manager
 from .server import server_manager
 from .task_catalog import task_catalog
+
+# Type definition for task info change callback
+TaskInfoChangeCallback = Callable[[TaskInfo], Coroutine[Any, Any, None]]
 
 
 class TaskManager:
@@ -22,6 +25,7 @@ class TaskManager:
     - Task status persistence and retrieval
     - Server resource allocation
     - Error handling and recovery
+    - Task info change notifications
 
     The TaskManager maintains separate queues for different task types and ensures
     tasks are processed according to their priorities while managing server resources.
@@ -43,7 +47,44 @@ class TaskManager:
 
         # Lock for processor management
         self._task_lock = asyncio.Lock()
+
+        # Task info change listeners with unique keys
+        self._task_info_listeners: Dict[str, TaskInfoChangeCallback] = {}
+
         logger.info("TaskManager initialized successfully")
+
+    def add_task_info_listener(
+        self, key: str, callback: TaskInfoChangeCallback
+    ) -> None:
+        """Add a listener for task info changes with a unique key"""
+        if key in self._task_info_listeners:
+            logger.warning(f"Listener with key {key} already exists, replacing...")
+        self._task_info_listeners[key] = callback
+        logger.debug(f"Added task info change listener with key {key}")
+
+    def remove_task_info_listener(self, key: str) -> None:
+        """Remove a listener by its key"""
+        if key in self._task_info_listeners:
+            del self._task_info_listeners[key]
+            logger.debug(f"Removed task info change listener with key {key}")
+        else:
+            logger.warning(f"No listener found with key {key}")
+
+    async def _notify_task_info_change(self, task_info: TaskInfo) -> None:
+        """Notify all registered listeners when task info changes"""
+        for key, listener in self._task_info_listeners.items():
+            try:
+                await listener(task_info)
+            except Exception as e:
+                logger.error(f"Error in task info change listener {key}: {str(e)}")
+
+    async def update_task_status(
+        self, task_info: TaskInfo, status: TaskStatus, message: str
+    ) -> None:
+        """Update task status and message, then notify listeners"""
+        task_info.status = status
+        task_info.message = message
+        await self._notify_task_info_change(task_info)
 
     async def create_task(
         self, task_type: str, priority: TaskPriority, *args, **kwargs
@@ -71,7 +112,7 @@ class TaskManager:
                     remaining_duration=None,
                     wait_duration=None,
                     execution_duration=None,
-                    message="Task is queued.",
+                    message="Task is created.",
                 ),
                 *args,
                 **kwargs,
@@ -91,6 +132,9 @@ class TaskManager:
         self._tasks[task.task_info.task_id] = task
         await self._ensure_task_processor(task.task_info.task_type)
         await self._queues[task.task_info.task_type].put(task)
+        await self.update_task_status(
+            task.task_info, TaskStatus.INIT, "Task is queued."
+        )
         return task
 
     async def _ensure_task_processor(self, task_type: str) -> None:
@@ -122,10 +166,10 @@ class TaskManager:
                     task_definition = task_catalog.get_task_definition(task_type)
 
                     # Allocate server resources if needed
-                    if task_definition.required_resources != ResourceType.API:
+                    if task_definition.required_resource != ResourceType.API:
                         server = await server_manager.get_idle_server(
                             task_definition.task_type,
-                            task_definition.required_resources,
+                            task_definition.required_resource,
                         )
                         if not server:
                             current_time = datetime.now().timestamp()
@@ -146,7 +190,6 @@ class TaskManager:
                         f"Processing task {task.task_info.task_id} of type {task_type}"
                     )
                     await self._execute_task(task, server)
-                    await task_catalog.notify_task_completion(task.task_info)
 
                 except asyncio.CancelledError:
                     logger.error(f"Queue processor for {task_type} was cancelled")
@@ -157,8 +200,9 @@ class TaskManager:
                     )
                     logger.error(error_msg)
                     if task:
-                        task.task_info.status = TaskStatus.FAIL
-                        task.task_info.error = error_msg
+                        await self.update_task_status(
+                            task.task_info, TaskStatus.FAIL, f"Task failed: {error_msg}"
+                        )
                 finally:
                     if server:
                         logger.debug(f"Releasing server {server.server_name}")
@@ -167,6 +211,8 @@ class TaskManager:
                         logger.debug(
                             f"Marking task {task.task_info.task_id} as done in queue"
                         )
+                        # 成功与否，只要完成任务的都会通知
+                        await task_catalog.notify_task_completion(task.task_info)
                         self._queues[task_type].task_done()
         except Exception as e:
             logger.error(
@@ -188,7 +234,9 @@ class TaskManager:
                 logger.error(error_msg)
                 raise ProcessingError(error_msg)
 
-            task.task_info.status = TaskStatus.PROCESS
+            await self.update_task_status(
+                task.task_info, TaskStatus.PROCESS, "Task is processing"
+            )
             task.task_info.start_time = datetime.now()
             task.task_info.wait_duration = (
                 task.task_info.start_time - task.task_info.create_time
@@ -202,18 +250,20 @@ class TaskManager:
                 server, task.task_info, *task.args, **task.kwargs
             )
 
-            task.task_info.status = TaskStatus.FINISH
+            await self.update_task_status(
+                task.task_info, TaskStatus.FINISH, "Task completed successfully"
+            )
             program_manager.update_finished_task_num(task.task_info.task_type)
-            task.task_info.message = "Task completed successfully"
             logger.info(f"Task {task.task_info.task_id} completed successfully")
 
         except Exception as e:
             error_msg = f"Task execution failed: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_msg)
-            task.task_info.status = TaskStatus.FAIL
+            await self.update_task_status(
+                task.task_info, TaskStatus.FAIL, "Task failed"
+            )
             program_manager.update_failed_task_num(task.task_info.task_type)
             task.task_info.error = error_msg
-            task.task_info.message = "Task failed"
             raise
         finally:
             task.task_info.finish_time = datetime.now()

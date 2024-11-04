@@ -81,7 +81,7 @@ class TaskInfo(BaseModel):
             "remaining_duration": self.remaining_duration,
             "wait_duration": self.wait_duration,
             "execution_duration": self.execution_duration,
-            "result": self.result,
+            "result": self.result.model_dump() if hasattr(self.result, "model_dump") else self.result,
             "error": self.error,
         }
 
@@ -141,17 +141,17 @@ class TaskDefinition:
 
     def __init__(
         self,
-        showname: str,
+        name: str,
         task_type: str,
         executor: TaskExecutor[Any],
         required_resource: ResourceType,
         description: str = "",
         version: str = "1.0.0",
     ):
-        self.name = showname
+        self.name = name
         self.task_type = task_type
         self.executor = executor
-        self.required_resources = required_resource
+        self.required_resource = required_resource
         self.description = description
         self.version = version
 
