@@ -31,7 +31,13 @@ from .models.task_models import (
     TaskStatus,
 )
 
-__version__ = "0.1.0"
+
+def shutdown():
+    """Shutdown the program"""
+    program_manager.shutdown()
+
+
+__version__ = "0.2.0"
 
 # Core functionality
 __all__ = [
@@ -60,4 +66,5 @@ __all__ = [
     "ProcessingError",
     # Logging
     "configure_logging",
+    "shutdown",
 ]

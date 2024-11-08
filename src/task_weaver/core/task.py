@@ -166,12 +166,17 @@ class TaskManager:
                     task_definition = task_catalog.get_task_definition(task_type)
 
                     # Allocate server resources if needed
-                    if task_definition.required_resource != ResourceType.API:
-                        server = await server_manager.get_idle_server(
-                            task_definition.task_type,
-                            task_definition.required_resource,
-                        )
-                        if not server:
+                    # 获得服务器前先检查现在队列中是否还有等待的任务
+                    if self._queues[task_type].qsize() > 0:
+                        if task_definition.required_resource != ResourceType.API:
+                            server = await server_manager.get_idle_server(
+                                task_definition.task_type,
+                                task_definition.required_resource,
+                            )
+                        if (
+                            not server
+                            and task_definition.required_resource != ResourceType.API
+                        ):
                             current_time = datetime.now().timestamp()
                             if current_time - last_warning_time >= warning_interval:
                                 logger.warning(
@@ -181,9 +186,16 @@ class TaskManager:
                             # Add delay to prevent tight loop
                             await asyncio.sleep(0.5)
                             continue
-                        logger.info(
-                            f"Allocated server {server.server_name} for task type {task_type}"
-                        )
+                        if server:
+                            logger.info(
+                                f"Allocated server {server.server_name} for task type {task_type}"
+                            )
+                        elif task_definition.required_resource == ResourceType.API:
+                            logger.info(
+                                f"{task_type} doesn't require server, executing..."
+                            )
+                    else:
+                        break
 
                     task: Task = await self._queues[task_type].get()
                     logger.info(
@@ -204,9 +216,6 @@ class TaskManager:
                             task.task_info, TaskStatus.FAIL, f"Task failed: {error_msg}"
                         )
                 finally:
-                    if server:
-                        logger.debug(f"Releasing server {server.server_name}")
-                        await server_manager.release_server(server)
                     if task:
                         logger.debug(
                             f"Marking task {task.task_info.task_id} as done in queue"
@@ -214,6 +223,9 @@ class TaskManager:
                         # 成功与否，只要完成任务的都会通知
                         await task_catalog.notify_task_completion(task.task_info)
                         self._queues[task_type].task_done()
+                    if server:
+                        logger.debug(f"Releasing server {server.server_name}")
+                        await server_manager.release_server(server)
         except Exception as e:
             logger.error(
                 f"Fatal error in _process_queue for {task_type}: {str(e)}\n{traceback.format_exc()}"
