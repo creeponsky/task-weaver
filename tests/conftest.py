@@ -27,7 +27,7 @@ async def setup_test_environment():
     start_mock_servers()
 
     # Register servers
-    server_manager.register_server(
+    await server_manager.register_server(
         ip="http://127.0.0.1:8001",
         server_name="gpu_server_1",
         description="GPU Test Server 1",
@@ -36,7 +36,7 @@ async def setup_test_environment():
         server_type=ResourceType.GPU,
     )
 
-    server_manager.register_server(
+    await server_manager.register_server(
         ip="http://127.0.0.1:8002",
         server_name="gpu_server_2",
         description="GPU Test Server 2",
@@ -45,7 +45,7 @@ async def setup_test_environment():
         server_type=ResourceType.GPU,
     )
 
-    server_manager.register_server(
+    await server_manager.register_server(
         ip="http://127.0.0.1:8003",
         server_name="gpu_server_3",
         description="GPU Test Server 3",
