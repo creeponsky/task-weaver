@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     strategy:
       matrix:
@@ -30,4 +31,5 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest
+        pytest -v --capture=no --log-cli-level=DEBUG
+      timeout-minutes: 5
