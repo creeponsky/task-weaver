@@ -8,7 +8,7 @@ from ..core.program_info import program_manager
 from ..log.logger import logger
 from ..models.server_models import ResourceType, Server, ServerStatus, ServerTier
 from ..utils.cache import CacheManager, CacheType
-
+import traceback
 # TODO 这里还需要每个插件当添加server的时候因为server是由可运行的任务类型的，对应的任务类型的插件就执行runningserver的连接测试，来确保服务可用
 
 
@@ -56,11 +56,13 @@ class ServerManager:
                 else:
                     logger.info(f"服务器{server} error,重连失败")
                     self.set_server_status(server, ServerStatus.stop)
-            if server.status != ServerStatus.stop:
-                self.running_servers.append(server)
-                running_num += 1
-                if server.status != ServerStatus.idle:
-                    self.set_server_status(server, ServerStatus.idle)
+            if server.status == ServerStatus.idle:
+                if await self.check_server(server):
+                    self.running_servers.append(server)
+                    running_num += 1
+                else:
+                    logger.info(f"服务器{server} idle,但是连接失败")
+                    self.set_server_status(server, ServerStatus.stop)
 
         program_manager.set_running_gpu_num(running_num)
         program_manager.set_gpu_num(len(self.all_servers))
@@ -203,6 +205,23 @@ class ServerManager:
                 self.server_idle_event[available_task_type].clear()
             return None
 
+    async def get_server_list(self, server_name_list: List[str] = None) -> List[Server]:
+        try:
+            await self.ensure_initialized()
+            if server_name_list:
+                res: List[Server] = []
+                for server_name in server_name_list:
+                    server = self.get_server_by_identifier(server_name=server_name)
+                    if server:
+                        res.append(server)
+                return res
+            else:
+                # 获得所有的服务器
+                return self.all_servers
+        except Exception as e:
+            logger.error(f"Get server list failed: {str(e)}\n{traceback.format_exc()}")
+            return []
+
     async def check_server(self, server: Server):
         start_time = time.time()
         backoff = 1
@@ -217,8 +236,12 @@ class ServerManager:
             except (httpx.ConnectError, httpx.TimeoutException) as e:
                 if i < 2:
                     await asyncio.sleep(backoff)
-                    backoff *= 2
-                logger.error(f"check_server: 服务器({server})异常：{str(e)}")
+                    logger.info(
+                        f"check_server: 服务器({server})异常：{str(e)}，尝试重试:{backoff}秒"
+                    )
+                else:
+                    logger.error(f"check_server: 服务器({server})异常：{str(e)}")
+                    return False
             except Exception as e:
                 logger.error(f"check_server: 服务器({server})异常：{e}")
                 return False
