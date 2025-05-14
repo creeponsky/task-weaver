@@ -201,8 +201,9 @@ class TaskManager:
                     logger.info(
                         f"Processing task {task.task_info.task_id} of type {task_type}"
                     )
-                    await self._execute_task(task, server)
-
+                    execution_task = asyncio.create_task(
+                            self._execute_task(task, server)
+                        )
                 except asyncio.CancelledError:
                     logger.error(f"Queue processor for {task_type} was cancelled")
                     break
@@ -215,17 +216,6 @@ class TaskManager:
                         await self.update_task_status(
                             task.task_info, TaskStatus.FAIL, f"Task failed: {error_msg}"
                         )
-                finally:
-                    if task:
-                        logger.debug(
-                            f"Marking task {task.task_info.task_id} as done in queue"
-                        )
-                        # 成功与否，只要完成任务的都会通知
-                        await task_catalog.notify_task_completion(task.task_info)
-                        self._queues[task_type].task_done()
-                    if server:
-                        logger.debug(f"Releasing server {server.server_name}")
-                        await server_manager.release_server(server)
         except Exception as e:
             logger.error(
                 f"Fatal error in _process_queue for {task_type}: {str(e)}\n{traceback.format_exc()}"
@@ -285,6 +275,14 @@ class TaskManager:
             logger.info(
                 f"Task {task.task_info.task_id} execution took {task.task_info.execution_duration:.2f} seconds"
             )
+            logger.info(f"执行完成, 资源释放")
+            if task:
+                logger.debug(f"Marking task {task.task_info.task_id} as done in queue")
+                await task_catalog.notify_task_completion(task.task_info)
+                self._queues[task.task_info.task_type].task_done()
+            if server:
+                logger.debug(f"Releasing server {server.server_name}")
+                await server_manager.release_server(server)
 
     def get_task_info(self, task_id: str) -> Optional[TaskInfo]:
         """Retrieve task information from memory."""
